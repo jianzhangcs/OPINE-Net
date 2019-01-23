@@ -9,6 +9,8 @@ def default_conv(in_channels, out_channels, kernel_size, bias=True):
         in_channels, out_channels, kernel_size,
         padding=(kernel_size//2), bias=bias)
 
+
+
 class MeanShift(nn.Conv2d):
     def __init__(
         self, rgb_range,
@@ -56,10 +58,10 @@ class ResBlock(nn.Module):
         res += x
 
         return res
-class SoftThr(nn.Module):
-    def __init__(self):
-        super(ResBlock, self).__init__()
-
+class Soft_Thr(nn.Module):
+    def __init__(self, initial_soft_thr = 0.01):
+        super(Soft_Thr, self).__init__()
+        self.soft_thr = nn.Parameter(torch.Tensor([initial_soft_thr]))
     def forward(self, x):
         return torch.mul(torch.sign(x), F.relu(torch.abs(x) - self.soft_thr))
 

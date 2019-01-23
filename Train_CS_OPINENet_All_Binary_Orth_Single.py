@@ -10,6 +10,7 @@ import numpy as np
 import os
 import sys
 from torch.utils.data import Dataset, DataLoader
+import platform
 
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -49,21 +50,10 @@ elif CS_ratio == 50:
 
 n_output = 1089
 
-class MySign(torch.autograd.Function):
-    """
-    We can implement our own custom autograd Functions by subclassing
-    torch.autograd.Function and implementing the forward and backward passes
-    which operate on Tensors.
-    """
 
+class MySign(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input):
-        """
-        In the forward pass we receive a Tensor containing the input and return
-        a Tensor containing the output. ctx is a context object that can be used
-        to stash information for backward computation. You can cache arbitrary
-        objects for use in the backward pass using the ctx.save_for_backward method.
-        """
         output = input.new(input.size())
         output[input >= 0] = 1
         output[input < 0] = -1
@@ -71,23 +61,14 @@ class MySign(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        """
-        In the backward pass we receive a Tensor containing the gradient of the loss
-        with respect to the output, and we need to compute the gradient of the loss
-        with respect to the input.
-        """
         grad_input = grad_output.clone()
         return grad_input
 
 
 MyBinarize = MySign.apply
 
-
 class BasicBlock(torch.nn.Module):
     def __init__(self):
-        """
-        In the constructor we instantiate two nn.Linear module
-        """
         super(BasicBlock, self).__init__()
         # self.linear = torch.nn.Linear(1, 1)  # One in and one out
         self.lambda_step = nn.Parameter(torch.Tensor([0.5]))
@@ -103,15 +84,42 @@ class BasicBlock(torch.nn.Module):
         self.conv6_w = nn.Parameter(init.xavier_normal_(torch.Tensor(1, 32, 3, 3)))
 
     def forward(self, x, PhiTPhi, PhiTb):
-        """
-        In the forward function we accept a Variable of input data and we must return
-        a Variable of output data. We can use Modules defined in the constructor as
-        well as arbitrary operators on Variables.
-        """
-
         x = x - self.lambda_step * torch.mm(x, PhiTPhi)
         x = x + self.lambda_step * PhiTb
         xx = x.view(-1, 1, 33, 33)
+
+
+        # x3 = F.conv2d(xx, self.conv1_w, padding=1)
+        #
+        # res = F.conv2d(x3, self.conv2_w, padding=1)
+        # res = F.relu(res)
+        #
+        # x4 = F.conv2d(res, self.conv3_w, padding=1)
+        #
+        # xnew = F.relu(torch.abs(x4) - self.soft_thr)
+        # res = torch.mul(torch.sign(x4), xnew)
+        #
+        # res = F.conv2d(res, self.conv4_w, padding=1)
+        # res = F.relu(res)
+        #
+        # res = F.conv2d(res, self.conv5_w, padding=1)
+        # res = F.relu(res)
+        # res = F.conv2d(res, self.conv55_w, padding=1)
+        # res = F.relu(res)
+        # res = F.conv2d(res, self.conv555_w, padding=1)
+        # res = F.relu(res)
+        #
+        # res = F.conv2d(res, self.conv6_w, padding=1)
+        # x = res + xx
+        #
+        #
+        # xnewnew = F.conv2d(x4, self.conv4_w, padding=1)
+        # x5 = F.relu(xnewnew)
+        # x5 = F.conv2d(x5, self.conv5_w, padding=1)
+        #
+        # y_pred = x.view(-1, 1089)
+        # x6 = x5 - x3
+
 
         # x = self.conv1(xx)
         x3 = F.conv2d(xx, self.conv1_w, padding=1)
@@ -218,8 +226,12 @@ class RandomDataset(Dataset):
     def __len__(self):
         return self.len
 
-
-rand_loader = DataLoader(dataset=RandomDataset(Training_labels, nrtrain), batch_size=batch_size, num_workers=4, shuffle=True)
+if(platform.system() =="Windows"):
+    rand_loader = DataLoader(dataset=RandomDataset(Training_labels, nrtrain), batch_size=batch_size, num_workers=0,
+                             shuffle=True)
+else:
+    rand_loader = DataLoader(dataset=RandomDataset(Training_labels, nrtrain), batch_size=batch_size, num_workers=4,
+                             shuffle=True)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
