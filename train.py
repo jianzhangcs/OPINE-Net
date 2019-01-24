@@ -28,13 +28,15 @@ def train():
     n_input = cs_ratio_dic[args.cs_ratio]
     n_output = 1089
     # our model
-    model = models.get_ISTANet(args.layer_num,n_input)
+    model = models.get_ISTANet(args.layer_num, n_input)
+    model.apply(utils.weights_init)
+
     model = nn.DataParallel(model)
     model = model.to(device)
 
     utils.print_paras_info(model)
 
-    training_data = sio.loadmat('Training_Data_0_20_Img91.mat')
+    training_data = sio.loadmat(args.input_data)
     training_labels = training_data['labels']
 
     num_workers = 0 if (platform.system() == "Windows") else 4
@@ -81,6 +83,7 @@ def train():
             # loss_w3 = torch.Tensor([0.01]).to(device)
 
             loss_all = loss + torch.mul(loss_w1, loss_sym) + torch.mul(loss_w2, loss_phi)
+            # loss_all = loss + torch.mul(loss_w2, loss_phi)
             # loss_all = loss + torch.mul(loss_w1, loss_sym) + torch.mul(loss_w2, loss_phi) + torch.mul(loss_w3, loss_I)
 
             # Zero gradients, perform a backward pass, and update the weights.

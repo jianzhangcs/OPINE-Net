@@ -1,2 +1,5 @@
 # OPINE-Net 
-# Good
+
+# 用法：
+
+train.py

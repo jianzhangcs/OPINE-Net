@@ -3,6 +3,7 @@ import argparse
 import torch.nn as nn
 from torch.nn import init
 import common
+import torch.nn.functional as F
 
 
 
@@ -14,41 +15,45 @@ class BasicBlock(torch.nn.Module):
         self.soft_thr = common.Soft_Thr(initial_soft_thr=0.01)
 
         conv = common.default_conv
-        bb = common.BasicBlock
 
-        self.bb2 = common.BasicBlock(conv,32,32,3)
-        self.conv3 = conv(32, 32, 3, bias=False)
+        feat_num = 32
 
-        self.conv4 = conv(32, 32, 3, bias=False)
-        self.conv5 = conv(32, 32, 3, bias=False)
+        m_head = [conv(1, feat_num, 3, bias=False)] # conv1
 
-        m_head = [conv(1, 32, 3, bias=False)] # conv1
-        m_trunk = [common.BasicBlock(conv,32,32,3) for _ in range(3)] # conv55 555
-        m_trunk.append(conv(32, 1, 3, bias=False)) # conv 6
+        m_forward = [conv(feat_num, feat_num, 3, bias=False), nn.ReLU(), conv(feat_num, feat_num, 3, bias=False)]
+        m_backward = [conv(feat_num, feat_num, 3, bias=False), nn.ReLU(), conv(feat_num, feat_num, 3, bias=False)]
+
+
+        m_trunk = [common.BasicBlock(conv, feat_num, feat_num, 3) for _ in range(2)]
+        m_trunk.append(conv(feat_num, 1, 3, bias=False))
+
 
         self.head = nn.Sequential(*m_head)
+        self.forward_transform = nn.Sequential(*m_forward)
+        self.backward_transform = nn.Sequential(*m_backward)
         self.trunk = nn.Sequential(*m_trunk)
-        self.branch = nn.Sequential(self.conv4, nn.ReLU(), self.conv5)
+
 
     def forward(self, x, PhiTPhi, PhiTb):
         x = x - self.lambda_step * torch.mm(x, PhiTPhi)
         x = x + self.lambda_step * PhiTb
-        #xx = x.view(-1, 1, 33, 33)
         x = x.view(-1, 1, 33, 33)
 
-        x3 = self.head(x)
-        res = self.bb2(x3)
-        x4 = self.conv3(res)
-        res = self.soft_thr(x4)
-        res = self.conv4(res)
-        res = self.conv5(res)
-        res = self.trunk(res)
+        x_head = self.head(x)
+        x_forward = self.forward_transform(x_head)
+        xx = self.soft_thr(x_forward)
+        xx = self.backward_transform(xx)
+        xx = F.relu(xx)
+        res = self.trunk(xx)
         x = res + x
 
-        x5 = self.branch(x4)
-        y_pred = x.view(-1, 1089)
-        x6 = x5 - x3
-        return [y_pred, x6]
+        x_pred = x.view(-1, 1089)
+
+        x_forward_backward = self.backward_transform(x_forward)
+        x_diff = x_head - x_forward_backward
+
+        return [x_pred, x_diff]
+
 
 class Mask_Func(torch.autograd.Function):
     @staticmethod
@@ -72,11 +77,13 @@ class ISTANet(torch.nn.Module):
         super(ISTANet, self).__init__()
         # self.block = block
         self.Phi = nn.Parameter(init.xavier_normal_(torch.Tensor(n_input, 1089)))
+        # Phi2 = nn.Parameter(init.xavier_normal_(torch.Tensor(n_input, 1089)))
+        # self.Phis = nn.ModuleList([Phi1,Phi2])
         self.Phi_scale = nn.Parameter(torch.Tensor([0.01]))
         self.LayerNo = LayerNo
-        fc = BasicBlock()
-        m_layers = [fc for _ in range(LayerNo)]
-        self.fcs = nn.ModuleList(m_layers)
+        basicblock = BasicBlock()
+        m_layers = [basicblock for _ in range(LayerNo)]
+        self.basicblocks = nn.ModuleList(m_layers)
 
     def forward(self, x):
         Phi_ = MyBinarize(self.Phi)
@@ -86,8 +93,8 @@ class ISTANet(torch.nn.Module):
         PhiTb = torch.mm(x, PhiTPhi)
         x = PhiTb
         layers_sym = []
-        for fc in self.fcs:
-            [x, x_sym] = fc(x, PhiTPhi, PhiTb)
+        for basicblock in self.basicblocks:
+            [x, x_sym] = basicblock(x, PhiTPhi, PhiTb)
             layers_sym.append(x_sym)
         y_pred = x
         return [y_pred, layers_sym, Phi]

@@ -26,7 +26,7 @@ class MeanShift(nn.Conv2d):
 class BasicBlock(nn.Sequential):
     def __init__(
         self, conv, in_channels, out_channels, kernel_size, stride=1, bias=False,
-        bn=True, act=nn.ReLU(True)):
+        bn=False, act=nn.ReLU(True)):
 
         m = [conv(in_channels, out_channels, kernel_size, bias=bias)]
         if bn:
@@ -58,6 +58,8 @@ class ResBlock(nn.Module):
         res += x
 
         return res
+
+
 class Soft_Thr(nn.Module):
     def __init__(self, initial_soft_thr = 0.01):
         super(Soft_Thr, self).__init__()
