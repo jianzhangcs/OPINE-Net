@@ -23,10 +23,8 @@ class BasicBlock(torch.nn.Module):
         m_forward = [conv(feat_num, feat_num, 3, bias=False), nn.ReLU(), conv(feat_num, feat_num, 3, bias=False)]
         m_backward = [conv(feat_num, feat_num, 3, bias=False), nn.ReLU(), conv(feat_num, feat_num, 3, bias=False)]
 
-
         m_trunk = [common.BasicBlock(conv, feat_num, feat_num, 3) for _ in range(2)]
         m_trunk.append(conv(feat_num, 1, 3, bias=False))
-
 
         self.head = nn.Sequential(*m_head)
         self.forward_transform = nn.Sequential(*m_forward)
@@ -73,7 +71,7 @@ MyBinarize = Mask_Func.apply
 
 
 class ISTANet(torch.nn.Module):
-    def __init__(self, block, LayerNo, n_input):
+    def __init__(self, block, LayerNo, n_input, share_flag):
         super(ISTANet, self).__init__()
         # self.block = block
         self.Phi = nn.Parameter(init.xavier_normal_(torch.Tensor(n_input, 1089)))
@@ -82,7 +80,12 @@ class ISTANet(torch.nn.Module):
         self.Phi_scale = nn.Parameter(torch.Tensor([0.01]))
         self.LayerNo = LayerNo
         basicblock = BasicBlock()
-        m_layers = [basicblock for _ in range(LayerNo)]
+
+        if share_flag == 1:
+            m_layers = [basicblock for _ in range(LayerNo)]
+        else:
+            m_layers = [BasicBlock() for _ in range(LayerNo)]
+
         self.basicblocks = nn.ModuleList(m_layers)
 
     def forward(self, x):
@@ -100,5 +103,51 @@ class ISTANet(torch.nn.Module):
         return [y_pred, layers_sym, Phi]
 
 
-def get_ISTANet(layer_num,n_input):
-    return ISTANet(BasicBlock(), layer_num, n_input)
+def get_ISTANet(layer_num,n_input, share_flag):
+    return ISTANet(BasicBlock(), layer_num, n_input, share_flag)
+
+
+
+class ISTANet_Multiple(torch.nn.Module):
+    def __init__(self, block, LayerNo, n_input, share_flag):
+        super(ISTANet_Multiple, self).__init__()
+        # self.block = block
+
+        # Phi1 = nn.Parameter(init.xavier_normal_(torch.Tensor(n_input, 1089)))
+        # Phi2 = nn.Parameter(init.xavier_normal_(torch.Tensor(n_input, 1089)))
+        self.Phis = nn.ParameterList([nn.Parameter(init.xavier_normal_(torch.Tensor(k, 1089))) for k in n_input])
+
+        # Phi_scale1 = nn.Parameter(torch.Tensor([0.01]))
+        # Phi_scale2 = nn.Parameter(torch.Tensor([0.01]))
+        self.Phi_scales = nn.ParameterList([nn.Parameter(torch.Tensor([0.01])) for _ in n_input])
+
+        self.LayerNo = LayerNo
+
+        basicblock = BasicBlock()
+
+        if share_flag == 1:
+            m_layers = [basicblock for _ in range(LayerNo)]
+        else:
+            m_layers = [BasicBlock() for _ in range(LayerNo)]
+
+        # m_layers = [basicblock for _ in range(LayerNo)]
+        self.basicblocks = nn.ModuleList(m_layers)
+
+    def forward(self, x, phi_index):
+        Phi_ = MyBinarize(self.Phis[phi_index])
+        Phi = self.Phi_scales[phi_index] * Phi_
+
+        # Phi = torch.sign(self.Phi)
+        PhiTPhi = torch.mm(torch.transpose(Phi, 0, 1), Phi)
+        PhiTb = torch.mm(x, PhiTPhi)
+        x = PhiTb
+        layers_sym = []
+        for basicblock in self.basicblocks:
+            [x, x_sym] = basicblock(x, PhiTPhi, PhiTb)
+            layers_sym.append(x_sym)
+        y_pred = x
+        return [y_pred, layers_sym, Phi]
+
+
+def get_ISTANet_Multiple(layer_num,n_input, share_flag):
+    return ISTANet_Multiple(BasicBlock(), layer_num, n_input, share_flag)

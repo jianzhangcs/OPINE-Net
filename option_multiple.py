@@ -10,15 +10,15 @@ def get_args():
                         help='')
     parser.add_argument('-lr', '--learning_rate', type=float, default=0.0001,
                         help='')
-    parser.add_argument('--layer_num', type=int, default=9,
+    parser.add_argument('--layer_num', type=int, default=20,
                         help='')
     parser.add_argument('--group_num', type=int, default=1,
                         help='')
     parser.add_argument('--phi_weight', type=float, default=0.1,
                         help='')
-    parser.add_argument('--cs_ratio', type=int, default=25,
-                        help='')
     parser.add_argument('--share_flag', type=int, default=0,
+                        help='')
+    parser.add_argument('--cs_ratio', type=str, default= '10,25,50',   # {4: 43, 1: 10, 10: 109, 25: 272, 30: 327, 40: 436, 50: 545}
                         help='')
     parser.add_argument('-gpu','--gpu_list', type=str, default='0',
                         help='')
