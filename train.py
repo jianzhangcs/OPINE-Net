@@ -12,7 +12,9 @@ import utils
 import option
 import torch.optim.lr_scheduler as lr_scheduler
 
-
+def validate(model):
+    #todo
+    pass
 def train():
     args = option.get_args()
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -101,7 +103,7 @@ def train():
             print(output_data)
 
         scheduler.step()
-
+        validate()
         output_file = open(output_file_name, 'a')
         output_file.write(output_data)
         output_file.close()
