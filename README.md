@@ -12,3 +12,7 @@ python test.py
 python train_multiple.py --cs_ratio 10,25,50
 
 python test_multiple.py
+
+
+#Computer 2
+python train_multiple.py --cs_ratio 10,40
