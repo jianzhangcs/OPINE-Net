@@ -44,7 +44,7 @@ def train():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=200, gamma=0.1)
 
-    model_dir = "OPINE_Net_share_%d_phase_%d_group_%d_%d_Binary_Norm_%.2f_Single_%.4f" % (
+    model_dir = "OPINE_Net_share_%d_phase_%d_group_%d_%d_Binary_Norm_%.2f_Single_%.6f" % (
         args.share_flag, args.layer_num, args.group_num, CS_ratio, args.phi_weight, args.learning_rate)
 
     output_file_name = "Log_output_%s.txt" % model_dir

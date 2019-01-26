@@ -30,3 +30,32 @@ def get_args():
                         help='')
     args = parser.parse_args()
     return args
+
+
+
+def get_args_test():    # parameters for testing
+    parser = argparse.ArgumentParser(description='OPINE-Net')
+    description = 'OPINE-Net pytorch implementation'
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-t', '--test_epoch', type=int, default=200,
+                        help='')
+    parser.add_argument('-lr', '--learning_rate', type=float, default=0.0001,
+                        help='')
+    parser.add_argument('--layer_num', type=int, default=9,
+                        help='')
+    parser.add_argument('--group_num', type=int, default=1,
+                        help='')
+    parser.add_argument('--phi_weight', type=float, default=0.1,
+                        help='')
+    parser.add_argument('--share_flag', type=int, default=1,
+                        help='')
+    parser.add_argument('--phi_index', type=int, default=0,
+                        help='')
+    parser.add_argument('--cs_ratio', type=int, default= 25,   # {4: 43, 1: 10, 10: 109, 25: 272, 30: 327, 40: 436, 50: 545}
+                        help='')
+    parser.add_argument('-gpu','--gpu_list', type=str, default='0',
+                        help='')
+    parser.add_argument('-input','--test_dir', type=str, default='CBSD68_TIF',
+                        help='')
+    args = parser.parse_args()
+    return args
