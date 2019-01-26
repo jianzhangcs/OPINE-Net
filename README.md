@@ -11,8 +11,16 @@ python test.py
 ## 对多种采样率只训练一个模型
 python train_multiple.py --cs_ratio 10,25,50
 
+<<<<<<< .mine
 python test_multiple.py
 
 
 #Computer 2
 python train_multiple.py --cs_ratio 10,40
+=======
+python test_multiple.py
+
+#Computer 1
+python train_multiple.py --cs_ratio 10,25,50
+
+>>>>>>> .theirs
