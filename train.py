@@ -66,8 +66,7 @@ def train():
     for epoch_i in range(args.start_epoch + 1, args.end_epoch + 1):
         # Increment scheduler count
         scheduler.step()
-        for param_group in optimizer.param_groups:
-            lr_value_= param_group['lr']
+        lr_value_ = utils.get_lr(optimizer)
 
         for data in rand_loader:
             batch_ys = data.to(device)
