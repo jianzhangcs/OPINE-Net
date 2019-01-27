@@ -57,8 +57,8 @@ def test():
     model_dir = "OPINE_Net_Multiple_share_%d_phase_%d_group_%d_%s_Binary_Norm_%.2f_Single_%.4f" % (share_flag, layer_num, group_num, ''.join([k for k in CS_ratio]), phi_weight, learning_rate)
     output_file_name = "Log_output_%s.txt" % (model_dir)
 
-
-    model.load_state_dict(torch.load('./%s/net_params_%d.pkl' % (model_dir, epoch_num)))
+    checkpoint_dict = torch.load('./%s/net_params_%d.ckpt' % (model_dir, epoch_num))
+    model.load_state_dict(checkpoint_dict['model_state_dict'])
     # model.load_state_dict(torch.load('net_params_%d.pkl' % epoch_num, map_location=lambda storage, loc: storage))
 
     Test_Img = './' + test_dir

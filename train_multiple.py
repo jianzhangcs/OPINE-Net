@@ -55,15 +55,17 @@ def train():
 
     if args.start_epoch > 0:
         pre_model_dir = model_dir
-        model.load_state_dict(torch.load('./%s/net_params_%d.pkl' % (pre_model_dir, args.start_epoch)))
+        checkpoint_dict = torch.load('./%s/net_params_%d.ckpt' % (pre_model_dir, args.start_epoch))
+        model.load_state_dict(checkpoint_dict['model_state_dict'])
+        scheduler.load_state_dict(checkpoint_dict['scheduler_state_dict'])
 
     Eye_I = [torch.eye(k).to(device) for k in n_input]
 
     # Training loop
     for epoch_i in range(args.start_epoch + 1, args.end_epoch + 1):
-
-        for param_group in optimizer.param_groups:
-            lr_value_= param_group['lr']
+        # Increment scheduler count
+        scheduler.step()
+        lr_value_ = utils.get_lr(optimizer)
 
         for data in rand_loader:
             batch_ys = data.to(device)
@@ -103,13 +105,15 @@ def train():
             # output_data = "[%02d/%02d] Loss: %.4f, Loss_sym: %.4f, Loss_phi: %.8f, Loss_I: %.4f\n" % (epoch_i, end_epoch, loss.item(), loss_sym.item(), loss_phi.item(), loss_I.item())
             print(output_data)
 
-        scheduler.step()
 
         output_file = open(output_file_name, 'a')
         output_file.write(output_data)
         output_file.close()
 
-        torch.save(model.state_dict(), "./%s/net_params_%d.pkl" % (model_dir, epoch_i))  # save only the parameters
+        checkpoint_dict = {'model_state_dict':model.state_dict(),
+                           'scheduler_state_dict':scheduler.state_dict(),
+                           'finished_epoch':epoch_i - 1}
+        torch.save(checkpoint_dict, "./%s/net_params_%d.ckpt" % (model_dir, epoch_i))  # save only the parameters
 
 
 if __name__ == '__main__':
