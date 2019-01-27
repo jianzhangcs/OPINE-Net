@@ -23,8 +23,8 @@ def train():
     CS_ratio = args.cs_ratio
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    cs_ratio_dic = {4: 43, 1: 10, 10: 109, 25: 272, 30: 327, 40: 436, 50: 545}
-    n_input = cs_ratio_dic[args.cs_ratio]
+    cs_ratio_dict = {4: 43, 1: 10, 10: 109, 25: 272, 30: 327, 40: 436, 50: 545}
+    n_input = cs_ratio_dict[args.cs_ratio]
     n_output = 1089
 
     # our model
@@ -56,13 +56,16 @@ def train():
 
     if args.start_epoch > 0:
         pre_model_dir = model_dir
-        model.load_state_dict(torch.load('./%s/net_params_%d.pkl' % (pre_model_dir, args.start_epoch)))
+        checkpoint_dict = torch.load('./%s/net_params_%d.ckpt' % (pre_model_dir, args.start_epoch))
+        model.load_state_dict(checkpoint_dict['model_state_dict'])
+        scheduler.load_state_dict(checkpoint_dict['scheduler_state_dict'])
 
     Eye_I = torch.eye(n_input).to(device)
 
     # Training loop
     for epoch_i in range(args.start_epoch + 1, args.end_epoch + 1):
-
+        # Increment scheduler count
+        scheduler.step()
         for param_group in optimizer.param_groups:
             lr_value_= param_group['lr']
 
@@ -102,13 +105,15 @@ def train():
             # output_data = "[%02d/%02d] Loss: %.4f, Loss_sym: %.4f, Loss_phi: %.8f, Loss_I: %.4f\n" % (epoch_i, end_epoch, loss.item(), loss_sym.item(), loss_phi.item(), loss_I.item())
             print(output_data)
 
-        scheduler.step()
-        validate()
+        validate(model)
         output_file = open(output_file_name, 'a')
         output_file.write(output_data)
         output_file.close()
 
-        torch.save(model.state_dict(), "./%s/net_params_%d.pkl" % (model_dir, epoch_i))  # save only the parameters
+        checkpoint_dict = {'model_state_dict':model.state_dict(),
+                           'scheduler_state_dict':scheduler.state_dict(),
+                           'finished_epoch':epoch_i - 1}
+        torch.save(checkpoint_dict, "./%s/net_params_%d.ckpt" % (model_dir, epoch_i))  # save only the parameters
 
 
 if __name__ == '__main__':
