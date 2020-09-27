@@ -94,7 +94,7 @@ If you find the code helpful in your resarch or work, please cite the following 
   journal={IEEE Journal of Selected Topics in Signal Processing},
   volume = {14},
   number = {4},
-  pages = {1475--1486},
+  pages = {765--774},
   year = {2020}
 }
 ```
